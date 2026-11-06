@@ -1,0 +1,16 @@
+{
+  "name": "Fotomática",
+  "short_name": "Fotomática",
+  "description": "Cabine de fotos com filtro de photo booth.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#8b8d5a",
+  "theme_color": "#1b1a12",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
