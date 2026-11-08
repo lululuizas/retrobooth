@@ -141,6 +141,7 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
 .taped.retrato img{width:min(380px,100%)}
 .taped.retrato.deitada img{width:min(460px,100%)}
 .taped.cabine.deitada img{width:min(240px,62vw)}
+.tape,.stamp{z-index:1}
 .tape{position:absolute;left:50%;width:96px;height:30px;background:var(--tape);opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.12);
   -webkit-mask:linear-gradient(90deg,transparent 0 3px,#000 3px calc(100% - 3px),transparent 0);mask:linear-gradient(90deg,transparent 0 3px,#000 3px calc(100% - 3px),transparent 0)}
 .tape.t{top:2px;transform:translateX(-46%) rotate(-3deg)}
@@ -183,7 +184,11 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
   body[data-screen="camera"] .filters[open] .sheet::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--ink-3);margin:0 auto 8px}
   body[data-screen="camera"] .filters[open] .sheet-head{display:flex;justify-content:space-between;align-items:center;font-size:15px;padding:0 2px}
   body[data-screen="camera"] .sheet .chip[aria-pressed="true"]{background:var(--ink)}
-  body[data-screen="print"] .print{order:-1;animation:rise .35s ease-out}
+  /* Screen changes: the print slides up like a page being pushed; going back, the booth fades in. */
+  body{transition:background-color .3s ease}
+  body[data-screen="print"] .print{order:-1;animation:printIn .42s cubic-bezier(.2,.8,.2,1)}
+  body[data-screen="print"] .taped img{animation:dispense .7s .12s cubic-bezier(.2,.8,.2,1) both}
+  body[data-screen="camera"] .machine{animation:camIn .3s ease-out}
   body[data-screen="print"] .machine>:not(.filters){display:none}
   body[data-screen="print"] .filters{border-top:0;padding-top:0}
   .actions{position:sticky;bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:2;width:100%;max-width:380px;flex-wrap:nowrap;background:var(--ink);padding:8px;border-radius:14px;box-shadow:0 10px 30px -10px rgba(20,20,10,.6)}
@@ -191,8 +196,13 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
   .actions .btn.ghost{color:var(--paper);border-color:var(--ink-3)}
 }
 @keyframes sheetIn{from{transform:translateY(100%)}to{transform:none}}
-@keyframes rise{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){body[data-screen="print"] .print{animation:none}}
+@keyframes printIn{from{opacity:0;transform:translateY(56px)}to{opacity:1;transform:none}}
+@keyframes dispense{from{transform:translateY(-26px)}to{transform:none}}
+@keyframes camIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  body[data-screen="print"] .print,body[data-screen="print"] .taped img,body[data-screen="camera"] .machine,
+  body[data-screen="camera"] .filters[open] .sheet{animation:none}
+}
 </style>
 </head>
 <body>
