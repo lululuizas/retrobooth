@@ -163,6 +163,13 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
   .seg button{padding:6px 4px;font-size:13.5px}
   .shutter{width:66px;height:66px}
   body[data-screen="camera"] .print{display:none}
+  /* Camera screen fills the phone: spare height goes around the viewfinder, controls sit low near the thumb. */
+  body[data-screen="camera"] .machine{
+    min-height:calc(100vh - max(12px,env(safe-area-inset-top,0px)) - max(16px,env(safe-area-inset-bottom,0px)));
+    min-height:calc(100dvh - max(12px,env(safe-area-inset-top,0px)) - max(16px,env(safe-area-inset-bottom,0px)));
+    grid-template-rows:auto 1fr auto auto auto;
+  }
+  body[data-screen="camera"] .vf{align-self:center}
   body[data-screen="print"] .print{order:-1;animation:rise .35s ease-out}
   body[data-screen="print"] .machine>:not(.filters){display:none}
   body[data-screen="print"] .filters{border-top:0;padding-top:0}
@@ -450,9 +457,14 @@ function fitVF(){
   if (!phone.matches){ vf.style.width=''; return; }
   if (state.screen!=='camera') return;
   const cs=getComputedStyle(m), bs=getComputedStyle(document.body);
-  const chrome = m.offsetHeight - vf.offsetHeight - f.offsetHeight + f.querySelector('summary').offsetHeight
+  // Add up everything but the viewfinder (the machine itself stretches to the screen, so its height can't be used).
+  const others=[...m.children].filter(e=>e!==vf && e!==f).reduce((a,e)=>a+e.offsetHeight,0);
+  const filterRow=f.querySelector('summary').offsetHeight + parseFloat(getComputedStyle(f).paddingTop) + 1;
+  const installed=matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const chrome = others + filterRow + parseFloat(cs.rowGap)*(m.children.length-1)
+    + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
     + parseFloat(bs.paddingTop) + parseFloat(bs.paddingBottom) + 14 /* viewfinder ring */
-    + (matchMedia('(pointer:coarse)').matches ? 24 : 0); /* room for a floating browser toolbar */
+    + (!installed && matchMedia('(pointer:coarse)').matches ? 24 : 0); /* room for Safari's floating toolbar */
   const h=Math.max(220, window.innerHeight - chrome);
   const maxW=m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 14;
   vf.style.width=Math.round(Math.min(maxW, h*aspect()))+'px';
