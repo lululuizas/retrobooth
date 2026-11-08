@@ -628,7 +628,7 @@ async function runSequence(){
     for(let c=3;c>=1;c--){ if(state.cancel) break; count.hidden=false; count.textContent=c; await wait(850); }
     count.hidden=true;
     if(state.cancel) break;
-    fireFlash(); clickSound();
+    fireFlash(); clickSound(); buzz(35);
     state.shots.push(snapshot()); pips(i+1,n); changed();
     await wait(i<n-1?700:300);
   }
@@ -639,8 +639,10 @@ async function runSequence(){
   if (state.shots.length) showScreen('print');
 }
 function doneMsg(){ return single() ? 'Foto revelada. Ajuste o filtro ou salve.' : 'Tira revelada. Ajuste o filtro ou salve.'; }
+// Short vibration on Android; iPhone browsers ignore it.
+function buzz(ms){ try{ if (navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 $('shutter').onclick=()=>{
-  ensureAudio();
+  ensureAudio(); buzz(10);
   if(state.running){ state.cancel=true; return; }
   if(state.live) runSequence(); else $('fileCam').click();
 };
