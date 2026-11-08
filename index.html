@@ -115,6 +115,7 @@ details[open]>summary::after{transform:rotate(-135deg);margin-bottom:-3px}
 .filters>summary canvas{width:28px;height:28px;border-radius:5px;flex:none}
 .filters>summary b{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.06em;text-transform:uppercase;margin-left:6px}
 .filters .presets{margin-top:10px}
+.sheet-head{display:none}
 .adj{margin-top:12px;border-top:1px solid var(--ink-3);padding-top:8px}
 .adj>summary{font-size:13px;color:#d9d3c1}
 .sliders{display:grid;gap:10px;padding:10px 4px 4px}
@@ -172,6 +173,16 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
     grid-template-rows:auto 1fr auto auto auto;
   }
   body[data-screen="camera"] .vf{align-self:center}
+  /* On the camera screen the open filter panel is a bottom drawer, so the live viewfinder stays visible above it. */
+  body[data-screen="camera"] .filters[open] .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;max-height:72vh;max-height:72dvh;overflow:auto;overscroll-behavior:contain;
+    background:var(--ink-2);border-radius:18px 18px 0 0;box-shadow:0 -14px 40px rgba(0,0,0,.55);
+    padding:8px max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    animation:sheetIn .28s cubic-bezier(.2,.8,.2,1);
+  }
+  body[data-screen="camera"] .filters[open] .sheet::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--ink-3);margin:0 auto 8px}
+  body[data-screen="camera"] .filters[open] .sheet-head{display:flex;justify-content:space-between;align-items:center;font-size:15px;padding:0 2px}
+  body[data-screen="camera"] .sheet .chip[aria-pressed="true"]{background:var(--ink)}
   body[data-screen="print"] .print{order:-1;animation:rise .35s ease-out}
   body[data-screen="print"] .machine>:not(.filters){display:none}
   body[data-screen="print"] .filters{border-top:0;padding-top:0}
@@ -179,6 +190,7 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
   .actions .btn{flex:1}
   .actions .btn.ghost{color:var(--paper);border-color:var(--ink-3)}
 }
+@keyframes sheetIn{from{transform:translateY(100%)}to{transform:none}}
 @keyframes rise{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){body[data-screen="print"] .print{animation:none}}
 </style>
@@ -218,12 +230,15 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
 
     <details class="filters" id="filters">
       <summary><canvas id="fThumb" width="56" height="56" aria-hidden="true"></canvas><span>Filtro<b id="adjPreset">Prata</b></span></summary>
-      <div class="presets" id="presets" role="group" aria-label="Filtro"></div>
-      <details class="adj" id="adj">
-        <summary>Ajustes finos</summary>
-        <div class="sliders" id="sliders"></div>
-        <div class="sl-foot"><button class="btn" id="resetBtn" type="button">Voltar ao preset</button></div>
-      </details>
+      <div class="sheet" id="sheet">
+        <div class="sheet-head"><b>Filtro</b><button class="btn light" id="sheetDone" type="button">Pronto</button></div>
+        <div class="presets" id="presets" role="group" aria-label="Filtro"></div>
+        <details class="adj" id="adj">
+          <summary>Ajustes finos</summary>
+          <div class="sliders" id="sliders"></div>
+          <div class="sl-foot"><button class="btn" id="resetBtn" type="button">Voltar ao preset</button></div>
+        </details>
+      </div>
     </details>
   </section>
 
@@ -425,6 +440,7 @@ function applyPreset(key){
   drawThumb(); syncSliders(); changed();
 }
 $('resetBtn').onclick=()=>applyPreset(state.preset);
+$('sheetDone').onclick=()=>{ $('filters').open=false; };
 
 const KINDS = {
   'cabine':     { alt:'Tira de fotos revelada',          title:'Sua tira',    idle:'Faça sua tira: 4 poses, 3 segundos entre cada uma.' },
