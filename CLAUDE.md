@@ -40,6 +40,8 @@ Tudo fica dentro de uma IIFE no `<script>` do fim da página.
 | `class Film` | Wrapper WebGL. `render(src, sw, sh, w, h, p, seed)` desenha qualquer imagem/vídeo com o filtro em um canvas de tamanho `w×h`, fazendo crop tipo "cover" |
 | `fitVF()` | Só no celular (< 880px), na tela Câmera: soma a altura dos outros filhos da `.machine` (não a altura da `.machine`, que estica até a tela) e define a largura do `.vf` para a cabine caber em `innerHeight`, botão vermelho incluído. Reserva 24px extras em tela de toque para a barra flutuante do Safari, exceto no app instalado (`display-mode: standalone`). O painel de filtro conta só pela linha do resumo. Mínimo de 220px de altura |
 | `showScreen()` / `newPhoto()` | Troca entre as telas Câmera e Revelação via `body[data-screen]`. Ao entrar na Revelação no celular, faz `history.pushState`, para o voltar do navegador levar de volta à Câmera. "Nova foto" limpa as fotos e volta |
+| Preferências | `savePrefs()` / `loadPrefs()` guardam em `localStorage` (`fm.prefs`) as poses, a orientação, o preset e os 9 ajustes, e restauram no carregamento. `fm.cam` lembra que a câmera já funcionou: na abertura, se ele existir ou se `permissions.query({name:'camera'})` disser `granted`, a câmera liga sozinha. Uma recusa (`NotAllowedError`) apaga o `fm.cam` |
+| `buzz(ms)` | `navigator.vibrate` no disparo (Android). O iOS ignora |
 | `vfNote()` | Mensagem curta sobre o visor (usa o `#hint`), para o progresso da galeria ("Foto 2 de 4"), já que o status fica na outra tela no celular |
 | `live` / `off` | Duas instâncias de `Film`: `live` para o visor (`#preview`) e `off` para a revelação final e as miniaturas dos presets, em canvas fora da tela |
 | `makeSample()` | Gera em canvas uma imagem de exemplo (cortina + silhueta) para o app não abrir vazio antes da câmera |
@@ -83,6 +85,10 @@ O slider de grão mostra ISO (100 a 6400) e o de exposição mostra EV.
 - Ordem da fachada: letreiro, visor, formato (`.fmt`: seletor Tira · 4 poses / Foto única + botão de orientação `#orientBtn`, com um retângulo que gira e o rótulo Em pé/Deitada), controles (Galeria, botão vermelho, Trocar), painel de filtro. O filtro fica por último, para que abrir o painel não empurre o botão vermelho para fora da tela.
 - Painel de filtro (`#filters`): uma linha de resumo (miniatura + "Filtro PRATA") que abre os 3 presets e, dentro deles, "Ajustes finos" (`#adj`). Fica aberto no desktop e recolhido no celular (definido no carregamento).
 - Celular (< 880px) em duas telas, via `body[data-screen]`: **Câmera** (só a fachada, que ocupa a altura toda da tela com `min-height: 100dvh`; a sobra de altura fica em volta do visor, centralizado, e os controles ficam embaixo, perto do polegar) e **Revelação** (título, tira, barra fixa com Salvar foto / Nova foto, status e o painel de filtro embaixo). O desktop ignora `data-screen` e mostra as duas colunas sempre.
+- Na tela Câmera do celular, a fachada vai de ponta a ponta (sem cartão nem borda de kraft) e passa por baixo da barra de status (`apple-mobile-web-app-status-bar-style: black-translucent` + safe areas). O kraft só aparece na Revelação. `paintScreen()` troca o `theme-color`: escuro na câmera, kraft na revelação.
+- Na tela Câmera do celular, o Filtro aberto vira gaveta (`.sheet` fixa embaixo, com alça e botão Pronto `#sheetDone`), para o visor ao vivo continuar visível. Na Revelação e no desktop, o `.sheet` fica no fluxo normal.
+- Transições: a Revelação sobe (`printIn`) e a tira desce um pouco (`dispense`); a câmera volta com fade (`camIn`). A fita e o carimbo têm `z-index:1` para ficar por cima da tira animada. Tudo desligado com `prefers-reduced-motion`.
+- Toque de app: `overscroll-behavior:none`, sem tap highlight, `touch-action:manipulation` e sem seleção/menu de pressionar nos controles. A foto revelada mantém o menu de pressionar, que é o plano B do salvar.
 - O aviso da câmera (`.gate`) é uma faixa compacta no pé do visor. Quando o visor tem menos de 250px de largura (container query), o texto some e fica só o botão.
 - Tokens em `:root`: `--kraft #8b8d5a`, `--ink #1b1a12`, `--ink-2`, `--ink-3`, `--paper #f2ede1`, `--muted #a29d86`, `--shutter #d4452c` (botão de disparo), `--tape #ebe4cd`.
 - Fontes: Big Shoulders Display (letreiro/títulos), Archivo (corpo), IBM Plex Mono (rótulos técnicos, contagem, valores dos sliders).
@@ -110,4 +116,4 @@ O slider de grão mostra ISO (100 a 6400) e o de exposição mostra EV.
 
 - Calibrar o preset Granulado com uma foto real da Luíza na mesma luz em que ela vai usar a cabine.
 - Carimbo de data opcional no rodapé da tira, como nas máquinas antigas.
-- Service worker simples para uso offline.
+- Service worker simples para uso offline. Ficou para depois de propósito: com ele, o app abre a versão guardada e as atualizações só aparecem na abertura seguinte. Ao fazer, versionar o cache.
