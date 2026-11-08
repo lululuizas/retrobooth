@@ -37,6 +37,12 @@
 [hidden]{display:none!important}
 img{max-width:100%}
 html,body{min-height:100%}
+/* Feel like an app: no rubber-band, no grey tap flash, no double-tap zoom, no text selection or long-press menu on controls. */
+html{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,summary,label,.chip,.seg,.orient,.shutter,input[type=range]{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.machine{-webkit-user-select:none;user-select:none}
+.btn:active:not(:disabled),.seg button:active,.chip:active,.orient:active{transform:scale(.97)}
+.btn,.seg button,.chip,.orient{transition:transform .08s}
 body{
   margin:0;
   background:var(--kraft);
