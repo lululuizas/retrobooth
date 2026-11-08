@@ -444,7 +444,7 @@ for (const [k,label,min,max,step,fmt] of SLIDERS){
   row.innerHTML=`<label for="${id}">${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}"><output for="${id}"></output>`;
   const inp=row.querySelector('input'), out=row.querySelector('output');
   inp.value=state.p[k]; out.textContent=fmt(state.p[k]);
-  inp.oninput=()=>{ state.p[k]=parseFloat(inp.value); out.textContent=fmt(state.p[k]); $('adjPreset').textContent=PRESETS[state.preset].label+' · ajustado'; changed(); };
+  inp.oninput=()=>{ state.p[k]=parseFloat(inp.value); out.textContent=fmt(state.p[k]); $('adjPreset').textContent=PRESETS[state.preset].label+' · ajustado'; changed(); savePrefs(); };
   inputs[k]={inp,out,fmt};
   slidersEl.append(row);
 }
@@ -453,9 +453,28 @@ function applyPreset(key){
   state.preset=key; state.p={...PRESETS[key]};
   for(const b of presetsEl.children) b.setAttribute('aria-pressed', b.dataset.k===key);
   $('adjPreset').textContent=PRESETS[key].label;
-  drawThumb(); syncSliders(); changed();
+  drawThumb(); syncSliders(); changed(); savePrefs();
 }
 $('resetBtn').onclick=()=>applyPreset(state.preset);
+
+/* ---------- Remembered choices (format, filter, fine adjustments) ---------- */
+function savePrefs(){
+  try{ localStorage.setItem('fm.prefs', JSON.stringify({poses:state.poses, deitada:state.deitada, preset:state.preset, p:Object.fromEntries(SLIDERS.map(([k])=>[k,state.p[k]]))})); }catch(e){}
+}
+function loadPrefs(){
+  let v=null;
+  try{ v=JSON.parse(localStorage.getItem('fm.prefs')||'null'); }catch(e){}
+  if (!v) return;
+  if (v.poses===1 || v.poses===4) setFormat(v.poses, !!v.deitada);
+  if (PRESETS[v.preset]) applyPreset(v.preset);
+  if (v.p){
+    let tweaked=false;
+    for (const [k,,min,max] of SLIDERS){ const x=v.p[k]; if (typeof x==='number' && x>=min && x<=max){ state.p[k]=x; if (x!==PRESETS[state.preset][k]) tweaked=true; } }
+    syncSliders();
+    if (tweaked) $('adjPreset').textContent=PRESETS[state.preset].label+' · ajustado';
+    changed();
+  }
+}
 $('sheetDone').onclick=()=>{ $('filters').open=false; };
 
 const KINDS = {
@@ -478,7 +497,7 @@ function setFormat(poses, deitada){
     if (!single() && state.preset==='grao') applyPreset('prata');
   }
   if (state.shots.length > poses) state.shots=state.shots.slice(-1);
-  pips(0,0); idleStatus(); changed(); fitVF();
+  pips(0,0); idleStatus(); changed(); fitVF(); savePrefs();
 }
 $('mTira').onclick=()=>{ if(!state.running) setFormat(4,state.deitada); };
 $('mUnica').onclick=()=>{ if(!state.running) setFormat(1,state.deitada); };
@@ -721,6 +740,7 @@ paintScreen('camera');
 // Filters stay open on desktop (room to spare) and collapsed on phones.
 $('filters').open = $('adj').open = !phone.matches;
 drawThumb();
+loadPrefs();
 fitVF();
 if (document.fonts) document.fonts.ready.then(fitVF);
 // Open straight into the live camera when permission is already granted, or the camera worked here before.
