@@ -1,6 +1,18 @@
-<!doctype html><html><head><meta charset=utf8><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png"><meta name="theme-color" content="#1b1a12"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Fotomática"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fotomática</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Cabine de fotos com filtro de photo booth.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1b1a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fotomática">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -22,8 +34,11 @@
   color-scheme:light;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
 html,body{min-height:100%}
 body{
+  margin:0;
   background:var(--kraft);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   color:var(--ink);
@@ -32,7 +47,8 @@ body{
   line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:20px 40px;
+  padding-top:max(20px,env(safe-area-inset-top,0px));
+  padding-bottom:max(40px,env(safe-area-inset-bottom,0px));
 }
 .wrap{max-width:1040px;margin:0 auto;display:grid;gap:28px;align-items:start}
 @media (min-width:880px){.wrap{grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:48px}}
@@ -121,6 +137,8 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
 .note{max-width:46ch;font-size:13px;color:#2c2b1d;text-align:center;margin:0;text-wrap:pretty}
 .hidden-video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <section class="machine" aria-label="Cabine">
@@ -521,18 +539,11 @@ function develop(){
 }
 
 /* ---------- Save ---------- */
-let dlP=null;
-function downloads(){ if(!dlP){ try{ dlP = (window.claude && window.claude.use) ? Promise.resolve(window.claude.use('downloads')).catch(()=>null) : Promise.resolve(null); }catch(e){ dlP=Promise.resolve(null); } } return dlP; }
 function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}`; }
 $('saveBtn').onclick=async()=>{
   const blob=await new Promise(r=>outC.toBlob(r,'image/jpeg',.94));
   if(!blob) return;
   const name=`fotomatica-${state.mode}-${stamp()}.jpg`;
-  const dl=await downloads();
-  if (dl){
-    try{ await dl.save({filename:name,data:blob}); setStatus('Foto salva.'); return; }
-    catch(e){ if(e && e.code==='declined'){ setStatus('Download cancelado.'); return; } if(e && e.code==='rate_limited'){ setStatus('Já existe um pedido de download aberto. Confirme ou feche e tente de novo.'); return; } }
-  }
   try{ const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }catch(e){}
   setStatus('Se o download não começar, toque e segure a foto revelada (ou clique com o botão direito) para salvar.');
 };
