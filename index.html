@@ -555,12 +555,14 @@ async function startCamera(){
     stream = await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:state.facing,width:{ideal:1280},height:{ideal:1280}}});
     video.srcObject=stream; await video.play();
     state.live=true; $('gate').hidden=true;
+    try{ localStorage.setItem('fm.cam','1'); }catch(e){}
     $('vfTag').textContent='Ao vivo'; $('vfTag').classList.add('live');
     $('flipBtn').disabled=false;
     idleStatus();
   }catch(e){ camFailed(e && e.name); }
 }
 function camFailed(name){
+  if (name==='NotAllowedError'){ try{ localStorage.removeItem('fm.cam'); }catch(e){} }
   state.live=false; $('vfTag').textContent='Prévia de exemplo'; $('vfTag').classList.remove('live');
   $('gate').hidden=false;
   $('gateMsg').textContent = name==='NotAllowedError'
@@ -721,6 +723,13 @@ $('filters').open = $('adj').open = !phone.matches;
 drawThumb();
 fitVF();
 if (document.fonts) document.fonts.ready.then(fitVF);
+// Open straight into the live camera when permission is already granted, or the camera worked here before.
+(async()=>{
+  let ok=false;
+  try{ ok = localStorage.getItem('fm.cam')==='1'; }catch(e){}
+  try{ if (navigator.permissions){ const st=await navigator.permissions.query({name:'camera'}); if(st.state==='granted') ok=true; else if(st.state==='denied') ok=false; } }catch(e){}
+  if (ok && live.gl && !state.live) startCamera();
+})();
 develop();
 })();
 </script>
