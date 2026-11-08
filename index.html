@@ -510,10 +510,11 @@ $('fileGal').onchange=e=>{ if(e.target.files.length) addFiles([...e.target.files
 
 /* ---------- Develop (output) ---------- */
 const outC=document.createElement('canvas'), outX=outC.getContext('2d');
-let outTimer=null, outUrl=null;
-function scheduleOut(){ clearTimeout(outTimer); outTimer=setTimeout(develop,120); }
+let outTimer=null, outUrl=null, outBlob=null, outPending=false;
+function scheduleOut(){ clearTimeout(outTimer); outPending=true; outTimer=setTimeout(develop,120); }
 function develop(){
   if(!off.gl) return;
+  outPending=true;
   const p=state.p, shots=state.shots, example=!shots.length;
   const border = p.tone>.5 ? '#1d1712' : '#141413';
   if (state.mode==='cabine'){
@@ -532,7 +533,8 @@ function develop(){
     if (s) off.render(s.src,s.w,s.h,W,H,p,s.mirror,s.seed); else off.render(sample,900,1200,W,H,p,false,5);
     outX.drawImage(offCanvas,0,0);
   }
-  outC.toBlob(b=>{ if(!b) return; if(outUrl) URL.revokeObjectURL(outUrl); outUrl=URL.createObjectURL(b); $('outImg').src=outUrl; },'image/jpeg',.92);
+  // The same JPEG feeds the print and the save button, so saving needs no extra async step (iOS drops share() after one).
+  outC.toBlob(b=>{ if(!b) return; outBlob=b; outPending=false; if(outUrl) URL.revokeObjectURL(outUrl); outUrl=URL.createObjectURL(b); $('outImg').src=outUrl; },'image/jpeg',.94);
   $('stamp').hidden=!example;
   $('saveBtn').disabled=example; $('redoBtn').disabled=example;
   $('printTitle').textContent = example ? 'Revelação' : (state.mode==='cabine'?'Sua tira':'Seu retrato');
@@ -540,10 +542,17 @@ function develop(){
 
 /* ---------- Save ---------- */
 function stamp(){ const d=new Date(), z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}`; }
+// On phones, the share sheet is the only path that offers "Salvar imagem" to the camera roll.
 $('saveBtn').onclick=async()=>{
-  const blob=await new Promise(r=>outC.toBlob(r,'image/jpeg',.94));
+  const touch = matchMedia('(pointer:coarse)').matches;
+  const blob = (!outPending && outBlob) || await new Promise(r=>outC.toBlob(r,'image/jpeg',.94));
   if(!blob) return;
   const name=`fotomatica-${state.mode}-${stamp()}.jpg`;
+  const file = touch && window.File ? new File([blob],name,{type:'image/jpeg'}) : null;
+  if (file && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file]}); setStatus('Pronto. Para fazer outra, toque em Refazer.'); return; }
+    catch(e){ if(e && e.name==='AbortError'){ setStatus('Nada foi salvo. Toque em Salvar foto e escolha "Salvar imagem".'); return; } }
+  }
   try{ const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=name; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }catch(e){}
   setStatus('Se o download não começar, toque e segure a foto revelada (ou clique com o botão direito) para salvar.');
 };

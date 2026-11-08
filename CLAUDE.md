@@ -43,7 +43,7 @@ Tudo fica dentro de uma IIFE no `<script>` do fim da página.
 | `runSequence()` | Contagem 3-2-1, flash, som de obturador (Web Audio) e `snapshot()`. 4 poses no modo cabine, 1 no retrato. O botão vira "Parar" durante a sequência |
 | `addFiles()` / `loadFile()` | Fallback sem câmera ao vivo: o botão vermelho abre `#fileCam` (`capture="user"`) e "Galeria" abre `#fileGal` (múltiplas fotos). As imagens são reduzidas para no máximo 1600px |
 | `develop()` | Monta a revelação em `outC` e mostra em `#outImg` como JPEG. Cabine: 4 quadros de 600×800 com borda de 20px e espaço de 16px, resultando em 640×3288. Retrato: 1200×1500. Roda com debounce de 120ms (`scheduleOut`) a cada mudança de slider |
-| Salvar | Usa um `<a download>` com o nome `fotomatica-{modo}-{AAAAMMDD-HHMM}.jpg` |
+| Salvar | Nome do arquivo: `fotomatica-{modo}-{AAAAMMDD-HHMM}.jpg`. Em tela de toque (`pointer:coarse`) com `navigator.canShare({files})`, abre o menu de compartilhar, que no iOS tem "Salvar imagem". Fora disso, ou se o share falhar, usa `<a download>`. O JPEG (qualidade .94) é gerado pelo `develop()` e guardado em `outBlob`. O clique usa esse blob sem esperar nada, porque o iOS recusa o `share()` se vier depois de um passo assíncrono. Só gera de novo se houver revelação pendente (`outPending`) |
 
 Ponto importante: as fotos guardam a imagem original (`state.shots[].src`), não a filtrada. Por isso mexer nos sliders depois da captura muda a revelação. Não quebre isso.
 
@@ -94,7 +94,7 @@ O slider de grão mostra ISO (100 a 6400) e o de exposição mostra EV.
 
 ## Pendências conhecidas
 
-- No iOS, o `<a download>` de um blob pode abrir a imagem em vez de baixar. A mensagem de status já orienta a tocar e segurar a foto. Uma melhoria seria usar `navigator.share({ files })` quando disponível.
+- O salvar pelo menu de compartilhar (nov/2026) foi testado só com simulação no navegador. Falta confirmar num iPhone e num Android de verdade.
 
 ## Ideias que surgiram
 
