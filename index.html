@@ -60,8 +60,6 @@ body{
 .sign span{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 
 .vf{position:relative;width:100%;aspect-ratio:3/4;max-width:100%;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 0 0 6px var(--ink-2),0 0 0 7px var(--ink-3)}
-.vf.retrato{aspect-ratio:4/5}
-.vf.horizontal{aspect-ratio:5/4}
 .vf canvas{display:block;width:100%;height:100%}
 .vf-tag{position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:rgba(15,15,10,.6);color:var(--paper);padding:3px 7px;border-radius:4px}
 .vf-tag.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--shutter);margin-right:6px;vertical-align:1px}
@@ -79,7 +77,13 @@ body{
 .vf{container-type:inline-size}
 @container (max-width:250px){.gate{justify-content:center}.gate p{display:none}}
 
-.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--ink-2);border-radius:10px;padding:4px;gap:4px}
+.fmt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.orient{all:unset;cursor:pointer;box-sizing:border-box;min-width:64px;padding:6px 10px;border-radius:10px;background:var(--ink-2);color:var(--paper);display:grid;justify-items:center;align-content:center;gap:5px}
+.orient i{display:block;width:12px;height:16px;border:1.5px solid currentColor;border-radius:2px;transition:transform .2s}
+.orient[aria-pressed="true"] i{transform:rotate(90deg)}
+.orient small{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.orient:focus-visible{outline:2px solid var(--shutter);outline-offset:2px}
+.seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--ink-2);border-radius:10px;padding:4px;gap:4px}
 .seg button{all:unset;cursor:pointer;text-align:center;padding:8px 6px;border-radius:7px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button small{display:block;font-family:var(--f-mono);font-weight:400;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
 .seg button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
@@ -134,13 +138,14 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
 .taped img{display:block;box-shadow:0 10px 24px -10px rgba(25,25,10,.55),0 1px 2px rgba(25,25,10,.3);max-width:100%;height:auto;background:#1a1712}
 .taped.cabine img{width:min(190px,48vw)}
 .taped.retrato img{width:min(380px,100%)}
-.taped.horizontal img{width:min(460px,100%)}
+.taped.retrato.deitada img{width:min(460px,100%)}
+.taped.cabine.deitada img{width:min(240px,62vw)}
 .tape{position:absolute;left:50%;width:96px;height:30px;background:var(--tape);opacity:.88;box-shadow:0 1px 2px rgba(0,0,0,.12);
   -webkit-mask:linear-gradient(90deg,transparent 0 3px,#000 3px calc(100% - 3px),transparent 0);mask:linear-gradient(90deg,transparent 0 3px,#000 3px calc(100% - 3px),transparent 0)}
 .tape.t{top:2px;transform:translateX(-46%) rotate(-3deg)}
 .tape.b{bottom:2px;transform:translateX(-54%) rotate(2deg)}
 .stamp{position:absolute;top:34px;right:-14px;transform:rotate(8deg);font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1.5px solid var(--ink);padding:3px 7px;border-radius:3px;background:rgba(242,237,225,.5)}
-.taped.retrato .stamp,.taped.horizontal .stamp{right:8px}
+.taped.retrato .stamp{right:8px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .actions .btn{padding:11px 18px;font-size:14px}
 .actions .btn.ghost{background:transparent;color:var(--ink);border-color:var(--ink)}
@@ -188,10 +193,12 @@ input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--sh
       </div>
     </div>
 
-    <div class="seg" role="group" aria-label="Formato">
-      <button type="button" id="mCabine" aria-pressed="true">Cabine<small>4 poses</small></button>
-      <button type="button" id="mRetrato" aria-pressed="false">Retrato<small>em pé</small></button>
-      <button type="button" id="mHorizontal" aria-pressed="false">Horizontal<small>deitada</small></button>
+    <div class="fmt">
+      <div class="seg" role="group" aria-label="Poses">
+        <button type="button" id="mTira" aria-pressed="true">Tira<small>4 poses</small></button>
+        <button type="button" id="mUnica" aria-pressed="false">Foto única<small>1 pose</small></button>
+      </div>
+      <button type="button" class="orient" id="orientBtn" aria-pressed="false" aria-label="Fotos deitadas"><i aria-hidden="true"></i><small>Em pé</small></button>
     </div>
 
     <div class="controls">
@@ -258,12 +265,13 @@ const SLIDERS = [
 ];
 
 const state = {
-  mode:'cabine', preset:'prata', p:{...PRESETS.prata},
+  poses:4, deitada:false, preset:'prata', p:{...PRESETS.prata},
   shots:[], live:false, facing:'user', running:false, cancel:false, screen:'camera',
 };
-// Width/height of the viewfinder per mode. Nothing is mirrored: what you see is what prints.
-const AR = { cabine:3/4, retrato:4/5, horizontal:5/4 };
-const single = () => state.mode!=='cabine';
+// Format = poses (4 strip / 1 single) × orientation. Nothing is mirrored: what you see is what prints.
+const single = () => state.poses===1;
+const kind = () => single() ? (state.deitada?'horizontal':'retrato') : (state.deitada?'cabine-h':'cabine');
+const aspect = () => state.deitada ? 5/4 : (single() ? 4/5 : 3/4);
 const phone = matchMedia('(max-width:879px)');
 
 /* ---------- WebGL film renderer ---------- */
@@ -409,25 +417,31 @@ function applyPreset(key){
 }
 $('resetBtn').onclick=()=>applyPreset(state.preset);
 
-const MODES = {
-  cabine:     { btn:'mCabine',     alt:'Tira de fotos revelada', title:'Sua tira' },
-  retrato:    { btn:'mRetrato',    alt:'Retrato revelado',       title:'Seu retrato' },
-  horizontal: { btn:'mHorizontal', alt:'Foto horizontal revelada', title:'Sua foto' },
+const KINDS = {
+  'cabine':     { alt:'Tira de fotos revelada',          title:'Sua tira',    idle:'Faça sua tira: 4 poses, 3 segundos entre cada uma.' },
+  'cabine-h':   { alt:'Tira de fotos deitadas revelada', title:'Sua tira',    idle:'Tira com 4 poses deitadas, 3 segundos entre cada uma.' },
+  'retrato':    { alt:'Retrato revelado',                title:'Seu retrato', idle:'Uma pose só, com flash e grão de filme.' },
+  'horizontal': { alt:'Foto horizontal revelada',        title:'Sua foto',    idle:'Uma pose deitada, com flash e grão de filme.' },
 };
-function setMode(m){
-  state.mode=m;
-  for (const [k,v] of Object.entries(MODES)) $(v.btn).setAttribute('aria-pressed',k===m);
-  $('vf').classList.toggle('retrato',m==='retrato');
-  $('vf').classList.toggle('horizontal',m==='horizontal');
-  $('taped').className='taped '+m;
-  $('signSub').textContent = m==='cabine' ? '4 poses · 3 s' : '1 pose · 3 s';
-  $('outImg').alt = MODES[m].alt;
-  if (single() && state.preset==='prata' && !state.shots.length) applyPreset('grao');
-  if (m==='cabine' && state.preset==='grao' && !state.shots.length) applyPreset('prata');
-  if (state.shots.length > (m==='cabine'?4:1)) state.shots=state.shots.slice(-1);
+function setFormat(poses, deitada){
+  const posesChanged = poses!==state.poses;
+  state.poses=poses; state.deitada=deitada;
+  $('mTira').setAttribute('aria-pressed',poses===4); $('mUnica').setAttribute('aria-pressed',poses===1);
+  const o=$('orientBtn'); o.setAttribute('aria-pressed',deitada); o.querySelector('small').textContent = deitada ? 'Deitada' : 'Em pé';
+  $('vf').style.aspectRatio=String(aspect());
+  $('taped').className='taped '+(single()?'retrato':'cabine')+(deitada?' deitada':'');
+  $('signSub').textContent = single() ? '1 pose · 3 s' : '4 poses · 3 s';
+  $('outImg').alt = KINDS[kind()].alt;
+  if (posesChanged && !state.shots.length){
+    if (single() && state.preset==='prata') applyPreset('grao');
+    if (!single() && state.preset==='grao') applyPreset('prata');
+  }
+  if (state.shots.length > poses) state.shots=state.shots.slice(-1);
   pips(0,0); idleStatus(); changed(); fitVF();
 }
-for (const [k,v] of Object.entries(MODES)) $(v.btn).onclick=()=>{ if(!state.running) setMode(k); };
+$('mTira').onclick=()=>{ if(!state.running) setFormat(4,state.deitada); };
+$('mUnica').onclick=()=>{ if(!state.running) setFormat(1,state.deitada); };
+$('orientBtn').onclick=()=>{ if(!state.running) setFormat(state.poses,!state.deitada); };
 
 /* ---------- Screens (phones only) ---------- */
 // Size the viewfinder so the booth, shutter included, fits in one screen; the filter panel may sit below.
@@ -441,7 +455,7 @@ function fitVF(){
     + (matchMedia('(pointer:coarse)').matches ? 24 : 0); /* room for a floating browser toolbar */
   const h=Math.max(220, window.innerHeight - chrome);
   const maxW=m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 14;
-  vf.style.width=Math.round(Math.min(maxW, h*AR[state.mode]))+'px';
+  vf.style.width=Math.round(Math.min(maxW, h*aspect()))+'px';
 }
 function showScreen(s){
   if (state.screen===s) return;
@@ -531,7 +545,7 @@ function snapshot(){
 // Short message over the viewfinder, for feedback the phone camera screen would otherwise hide.
 function vfNote(t){ if(state.running) return; const h=$('hint'); h.textContent=t; h.hidden=!t; }
 async function runSequence(){
-  const n = state.mode==='cabine'?4:1;
+  const n = state.poses;
   vfNote('');
   state.running=true; state.cancel=false; $('shutter').classList.add('busy'); $('shutter').textContent='Parar';
   state.shots=[]; changed(); pips(0,n);
@@ -551,7 +565,7 @@ async function runSequence(){
   state.cancel=false;
   if (state.shots.length) showScreen('print');
 }
-function doneMsg(){ return state.mode==='cabine' ? 'Tira revelada. Ajuste o filtro ou salve.' : 'Foto revelada. Ajuste o filtro ou salve.'; }
+function doneMsg(){ return single() ? 'Foto revelada. Ajuste o filtro ou salve.' : 'Tira revelada. Ajuste o filtro ou salve.'; }
 $('shutter').onclick=()=>{
   ensureAudio();
   if(state.running){ state.cancel=true; return; }
@@ -570,7 +584,7 @@ function loadFile(f){
   });
 }
 async function addFiles(files, fromCam){
-  const n = state.mode==='cabine'?4:1;
+  const n = state.poses;
   if (single() || state.shots.length>=n) state.shots=[];
   let bad=0;
   for(const f of files){
@@ -599,8 +613,9 @@ function develop(){
   outPending=true;
   const p=state.p, shots=state.shots, example=!shots.length;
   const border = p.tone>.5 ? '#1d1712' : '#141413';
-  if (state.mode==='cabine'){
-    const FW=600, FH=800, pad=20, gap=16;
+  if (!single()){
+    // Strip: 4 frames, portrait 3:4 or landscape 5:4, on the same 640px-wide paper.
+    const FW=600, FH=state.deitada?480:800, pad=20, gap=16;
     outC.width=FW+pad*2; outC.height=pad*2+FH*4+gap*3;
     outX.fillStyle=border; outX.fillRect(0,0,outC.width,outC.height);
     for(let i=0;i<4;i++){
@@ -610,7 +625,7 @@ function develop(){
       else { outX.fillStyle='#2b2822'; outX.fillRect(pad,y,FW,FH); outX.fillStyle='#6f6a5a'; outX.font='500 64px "IBM Plex Mono",monospace'; outX.textAlign='center'; outX.fillText(String(i+1),pad+FW/2,y+FH/2+22); }
     }
   } else {
-    const [W,H] = state.mode==='horizontal' ? [1500,1200] : [1200,1500], s=shots[shots.length-1];
+    const [W,H] = state.deitada ? [1500,1200] : [1200,1500], s=shots[shots.length-1];
     outC.width=W; outC.height=H;
     if (s) off.render(s.src,s.w,s.h,W,H,p,s.seed); else off.render(sample,900,1200,W,H,p,5);
     outX.drawImage(offCanvas,0,0);
@@ -619,7 +634,7 @@ function develop(){
   outC.toBlob(b=>{ if(!b) return; outBlob=b; outPending=false; if(outUrl) URL.revokeObjectURL(outUrl); outUrl=URL.createObjectURL(b); $('outImg').src=outUrl; },'image/jpeg',.94);
   $('stamp').hidden=!example;
   $('saveBtn').disabled=example; $('redoBtn').disabled=example;
-  $('printTitle').textContent = example ? 'Revelação' : MODES[state.mode].title;
+  $('printTitle').textContent = example ? 'Revelação' : KINDS[kind()].title;
 }
 
 /* ---------- Save ---------- */
@@ -629,7 +644,7 @@ $('saveBtn').onclick=async()=>{
   const touch = matchMedia('(pointer:coarse)').matches;
   const blob = (!outPending && outBlob) || await new Promise(r=>outC.toBlob(r,'image/jpeg',.94));
   if(!blob) return;
-  const name=`fotomatica-${state.mode}-${stamp()}.jpg`;
+  const name=`fotomatica-${kind()}-${stamp()}.jpg`;
   const file = touch && window.File ? new File([blob],name,{type:'image/jpeg'}) : null;
   if (file && navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file]}); setStatus('Pronto. Para fazer outra, toque em Nova foto.'); return; }
@@ -644,7 +659,7 @@ $('redoBtn').onclick=newPhoto;
 function setStatus(t){ $('status').textContent=t; }
 function idleStatus(){
   if (state.shots.length) return;
-  setStatus({ cabine:'Faça sua tira: 4 poses, 3 segundos entre cada uma.', retrato:'Uma pose só, com flash e grão de filme.', horizontal:'Uma pose deitada, com flash e grão de filme.' }[state.mode]);
+  setStatus(KINDS[kind()].idle);
 }
 
 /* ---------- Init ---------- */

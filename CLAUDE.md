@@ -1,6 +1,6 @@
 # retrobooth (Fotomática)
 
-Cabine de fotos para o navegador. Ela simula as tiras de photo booth de máquina (P&B ou sépia, 4 poses) e a foto única granulada com flash de filme, em pé (4:5) ou deitada (5:4). A câmera do celular ou do computador abre ao vivo, e o filtro roda em tempo real via WebGL.
+Cabine de fotos para o navegador. Ela simula as tiras de photo booth de máquina (P&B ou sépia, 4 poses) e a foto única granulada com flash de filme. As duas existem em pé ou deitadas: tira com quadros 3:4 ou 5:4, foto única 4:5 ou 5:4. A câmera do celular ou do computador abre ao vivo, e o filtro roda em tempo real via WebGL.
 
 - Repositório: `lululuizas/retrobooth` (branch `main`)
 - Site publicado (GitHub Pages, raiz da `main`): https://lululuizas.github.io/retrobooth/
@@ -33,8 +33,9 @@ Tudo fica dentro de uma IIFE no `<script>` do fim da página.
 |---|---|
 | `PRESETS` | Os 3 filtros prontos (`prata`, `sepia`, `grao`), cada um com os mesmos 9 parâmetros |
 | `SLIDERS` | Define os controles: chave, rótulo, min/max/step e o formatador do valor exibido |
-| `state` | Estado único: `mode` (`cabine`/`retrato`/`horizontal`), `preset`, `p` (parâmetros atuais), `shots` (fotos capturadas), `live`, `facing`, `running`, `cancel`, `screen` (`camera`/`print`) |
-| `AR` / `MODES` | Proporção do visor por modo (3:4, 4:5, 5:4) e textos por modo (botão, alt, título da revelação) |
+| `state` | Estado único: `poses` (4 ou 1), `deitada` (bool), `preset`, `p` (parâmetros atuais), `shots` (fotos capturadas), `live`, `facing`, `running`, `cancel`, `screen` (`camera`/`print`) |
+| `single()` / `kind()` / `aspect()` | Derivam o formato do estado. `kind()` dá `cabine`, `cabine-h`, `retrato` ou `horizontal` (usado em `KINDS`, nos textos e no nome do arquivo). `aspect()` dá a proporção do visor: 3:4 (tira em pé), 4:5 (foto em pé) ou 5:4 (deitada) |
+| `KINDS` / `setFormat(poses, deitada)` | Textos por formato (alt, título da revelação, status inicial) e a função que aplica o formato: botões, `aspect-ratio` do visor, classes do `.taped`, troca automática de preset |
 | `VS` / `FS` | Shaders WebGL. O fragment shader é o filtro inteiro |
 | `class Film` | Wrapper WebGL. `render(src, sw, sh, w, h, p, seed)` desenha qualquer imagem/vídeo com o filtro em um canvas de tamanho `w×h`, fazendo crop tipo "cover" |
 | `fitVF()` | Só no celular (< 880px), na tela Câmera: mede tudo o que não é o visor e define a largura do `.vf` para a cabine caber em `innerHeight`, botão vermelho incluído. Reserva 24px extras em tela de toque para a barra flutuante do Safari. O painel de filtro conta só pela linha do resumo. Mínimo de 220px de altura |
@@ -44,10 +45,10 @@ Tudo fica dentro de uma IIFE no `<script>` do fim da página.
 | `makeSample()` | Gera em canvas uma imagem de exemplo (cortina + silhueta) para o app não abrir vazio antes da câmera |
 | `loop()` | `requestAnimationFrame`. Redesenha o visor a ~30 fps quando a câmera está ao vivo, ou só quando algo muda (`dirty`) |
 | `startCamera()` / `camFailed()` | `getUserMedia` (ideal 1280px, `facingMode`). Se falhar, mostra a mensagem do `.gate` e cai para o input de arquivo |
-| `runSequence()` | Contagem 3-2-1, flash, som de obturador (Web Audio) e `snapshot()`. 4 poses no modo cabine, 1 nos outros. O botão vira "Parar" durante a sequência. No fim, se há pelo menos uma foto, vai para a tela Revelação |
+| `runSequence()` | Contagem 3-2-1, flash, som de obturador (Web Audio) e `snapshot()`. 4 poses na tira, 1 na foto única. O botão vira "Parar" durante a sequência. No fim, se há pelo menos uma foto, vai para a tela Revelação |
 | `addFiles()` / `loadFile()` | Fallback sem câmera ao vivo: o botão vermelho abre `#fileCam` (`capture="user"`) e "Galeria" abre `#fileGal` (múltiplas fotos). As imagens são reduzidas para no máximo 1600px. Esconde o aviso `.gate`. Vai para a Revelação quando completa a tira (4) ou a foto única |
-| `develop()` | Monta a revelação em `outC` e mostra em `#outImg` como JPEG. Cabine: 4 quadros de 600×800 com borda de 20px e espaço de 16px, resultando em 640×3288. Retrato: 1200×1500. Horizontal: 1500×1200. Roda com debounce de 120ms (`scheduleOut`) a cada mudança de slider |
-| Salvar | Nome do arquivo: `fotomatica-{modo}-{AAAAMMDD-HHMM}.jpg`. Em tela de toque (`pointer:coarse`) com `navigator.canShare({files})`, abre o menu de compartilhar, que no iOS tem "Salvar imagem". Fora disso, ou se o share falhar, usa `<a download>`. O JPEG (qualidade .94) é gerado pelo `develop()` e guardado em `outBlob`. O clique usa esse blob sem esperar nada, porque o iOS recusa o `share()` se vier depois de um passo assíncrono. Só gera de novo se houver revelação pendente (`outPending`) |
+| `develop()` | Monta a revelação em `outC` e mostra em `#outImg` como JPEG. Tira em pé: 4 quadros de 600×800 com borda de 20px e espaço de 16px, resultando em 640×3288. Tira deitada: quadros de 600×480, resultando em 640×2008. Foto em pé: 1200×1500. Foto deitada: 1500×1200. Roda com debounce de 120ms (`scheduleOut`) a cada mudança de slider |
+| Salvar | Nome do arquivo: `fotomatica-{kind()}-{AAAAMMDD-HHMM}.jpg`. Em tela de toque (`pointer:coarse`) com `navigator.canShare({files})`, abre o menu de compartilhar, que no iOS tem "Salvar imagem". Fora disso, ou se o share falhar, usa `<a download>`. O JPEG (qualidade .94) é gerado pelo `develop()` e guardado em `outBlob`. O clique usa esse blob sem esperar nada, porque o iOS recusa o `share()` se vier depois de um passo assíncrono. Só gera de novo se houver revelação pendente (`outPending`) |
 
 Ponto importante: as fotos guardam a imagem original (`state.shots[].src`), não a filtrada. Por isso mexer nos sliders depois da captura muda a revelação. Não quebre isso.
 
@@ -72,14 +73,14 @@ Ponto importante: as fotos guardam a imagem original (`state.shots[].src`), não
 | `sepia` | Sépia (tira envelhecida) | 0.30 | 0.40 | 0.35 | 0.30 | 0.40 | 0.30 | 0.90 | 0.22 | 1.25 |
 | `grao` | Granulado (retrato com flash) | 0.10 | 0.75 | 0.75 | 0.65 | 0.60 | 0.35 | 0.06 | 0.00 | 1.10 |
 
-Ao trocar de modo sem fotos capturadas: Retrato e Horizontal selecionam `grao` (se estava em `prata`) e Cabine volta para `prata` (se estava em `grao`).
+Ao trocar o número de poses sem fotos capturadas: Foto única seleciona `grao` (se estava em `prata`) e Tira volta para `prata` (se estava em `grao`). Trocar só a orientação não mexe no preset. Com fotos já feitas, trocar a orientação reenquadra as mesmas fotos.
 
 O slider de grão mostra ISO (100 a 6400) e o de exposição mostra EV.
 
 ## Design
 
 - Conceito: à esquerda fica a "fachada" escura da cabine (visor, formato, botão vermelho, filtro). À direita, a tira revelada presa com fita crepe sobre papel kraft verde-oliva.
-- Ordem da fachada: letreiro, visor, formato (Cabine / Retrato / Horizontal), controles (Galeria, botão vermelho, Trocar), painel de filtro. O filtro fica por último, para que abrir o painel não empurre o botão vermelho para fora da tela.
+- Ordem da fachada: letreiro, visor, formato (`.fmt`: seletor Tira · 4 poses / Foto única + botão de orientação `#orientBtn`, com um retângulo que gira e o rótulo Em pé/Deitada), controles (Galeria, botão vermelho, Trocar), painel de filtro. O filtro fica por último, para que abrir o painel não empurre o botão vermelho para fora da tela.
 - Painel de filtro (`#filters`): uma linha de resumo (miniatura + "Filtro PRATA") que abre os 3 presets e, dentro deles, "Ajustes finos" (`#adj`). Fica aberto no desktop e recolhido no celular (definido no carregamento).
 - Celular (< 880px) em duas telas, via `body[data-screen]`: **Câmera** (só a fachada, cabendo em uma tela) e **Revelação** (título, tira, barra fixa com Salvar foto / Nova foto, status e o painel de filtro embaixo). O desktop ignora `data-screen` e mostra as duas colunas sempre.
 - O aviso da câmera (`.gate`) é uma faixa compacta no pé do visor. Quando o visor tem menos de 250px de largura (container query), o texto some e fica só o botão.
@@ -93,7 +94,7 @@ O slider de grão mostra ISO (100 a 6400) e o de exposição mostra EV.
 - A câmera ao vivo exige HTTPS (ou localhost). No GitHub Pages funciona. Abrindo o arquivo pelo `file://`, depende do navegador.
 - `<video>` precisa de `playsinline muted autoplay` para o iOS não abrir em tela cheia.
 - Nada é espelhado, nem o visor nem as fotos (decisão da Luíza, nov/2026): o que aparece no visor é o que sai na foto, como numa cabine de verdade. Não recoloque o espelhamento sem pedir.
-- O Horizontal (5:4) com o celular em pé recorta o meio da imagem vertical da câmera: usa a largura inteira e corta em cima e embaixo. Não há layout próprio para o celular deitado.
+- Os formatos deitados (5:4) com o celular em pé recortam o meio da imagem vertical da câmera: usa a largura inteira e corta em cima e embaixo. Não há layout próprio para o celular deitado.
 - O WebGL usa `preserveDrawingBuffer: true` no canvas fora da tela, porque o `drawImage` copia dele depois do render.
 - Sem service worker: o app instala na tela inicial (manifest + ícones), mas não funciona offline.
 - O CSS tem `[hidden]{display:none!important}`. Sem essa regra, elementos com `display:grid` (`.count`, `.gate`) aparecem mesmo com o atributo `hidden`. Não remova.
